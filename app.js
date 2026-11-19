@@ -2792,18 +2792,18 @@ function buildRenderedLineEl(ln){
 function buildBlockEls(){
   const blocks = [];
   let block = null;
-  const newBlock = () => { block = document.createElement('div'); block.className='rblock'; blocks.push(block); };
+  let hasLines = false;
+  const newBlock = () => { block = document.createElement('div'); block.className='rblock'; blocks.push(block); hasLines = false; };
   newBlock();
   for(const ln of song.lines){
     if(ln.type==='section'){
       newBlock();
       const s=document.createElement('div'); s.className='rsection'; s.textContent=ln.label; block.appendChild(s);
     } else if(isBlank(ln)){
-      if(block && block.childNodes.length){
-        const b=document.createElement('div'); b.style.height='8px'; block.appendChild(b);
-      }
+      if(hasLines) newBlock();
     } else {
       block.appendChild(buildRenderedLineEl(ln));
+      hasLines = true;
     }
   }
   return blocks.filter(b => b.childNodes.length);
@@ -2866,17 +2866,17 @@ function measureHeights(els, colWidthPx, lyricSize, chordSize){
 function packPages(blockEls, headH, cols, colWidth, lyricSize, chordSize){
   const blockH = measureHeights(blockEls, colWidth, lyricSize, chordSize);
   const pages = [];
-  let pageCols = null, c = 0, fill = 0;
+  let pageCols = null, c = 0, fill = 0, pageReserve = 0;
   const newPage = (reserve) => {
     pageCols = Array.from({length: cols}, () => []);
     pages.push(pageCols);
-    c = 0; fill = reserve || 0;
+    c = 0; pageReserve = reserve || 0; fill = pageReserve;
   };
   newPage(headH);
   for(let i=0; i<blockEls.length; i++){
     const h = blockH[i];
-    if(fill > 0 && fill + h > CONTENT_H){
-      if(c < cols - 1){ c++; fill = 0; }
+    if(pageCols[c].length > 0 && fill + h > CONTENT_H){
+      if(c < cols - 1){ c++; fill = pageReserve; }
       else { newPage(0); }
     }
     pageCols[c].push(i);
